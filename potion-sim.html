@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ポーション製作シミュレーター</title>
+<style>
+:root{--bg:#fafaf7;--fg:#1d1d1b;--mut:#6b6b66;--card:#fff;--bd:#e3e2dc;--ac:#c2410c;--ok:#dc2626;--ng:#2563eb;--key:#efeee8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161618;--fg:#eeeeea;--mut:#9a9a94;--card:#202023;--bd:#333338;--ac:#fb923c;--ok:#f87171;--ng:#60a5fa;--key:#2b2b30;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161618;--fg:#eeeeea;--mut:#9a9a94;--card:#202023;--bd:#333338;--ac:#fb923c;--ok:#f87171;--ng:#60a5fa;--key:#2b2b30;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;padding:16px;max-width:560px;margin:0 auto}
+body.po{padding-bottom:320px}
+h1{font-size:18px;margin:4px 0 2px}.sub{color:var(--mut);font-size:12px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mat{padding:10px 0;border-bottom:1px dashed var(--bd)}.mat:last-child{border:0}
+input[type=text]{flex:1;min-width:0;font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:9px 12px}
+input[readonly]{background:var(--key);font-weight:600}
+input[type=number]{width:72px;font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:9px 8px}
+select,button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:9px 12px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+select{max-width:100%}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:600}
+button:active{opacity:.7}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chips button{padding:6px 10px;font-size:12px}
+.tag{font-size:11px;color:var(--ac);border:1px solid var(--ac);border-radius:6px;padding:1px 6px;white-space:nowrap}
+.lab{font-size:11px;color:var(--mut);display:block;margin:6px 0 2px}
+.num{display:inline-flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--card)}
+.num button{border:0;border-radius:0;background:var(--key);width:34px;padding:8px 0;font-size:12px}
+.num .val{background:var(--card);min-width:84px;padding:8px 6px;font-variant-numeric:tabular-nums;font-weight:600}
+.num .val.on{outline:2px solid var(--ac);outline-offset:-2px}
+.x{padding:9px 11px}.sum{margin-left:auto;font-size:13px;color:var(--mut);font-variant-numeric:tabular-nums;text-align:right}
+.res{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--bd);font-variant-numeric:tabular-nums}
+.res:last-child{border:0}.big{font-size:22px;font-weight:700}.ok{color:var(--ok)}.ng{color:var(--ng)}
+.mut{color:var(--mut);font-size:12px}[hidden]{display:none!important}
+label.c{display:flex;gap:6px;align-items:flex-start;font-size:13px;margin:6px 0}
+#pad{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 16px rgba(0,0,0,.15);z-index:5}
+.ph{display:flex;align-items:center;gap:10px;margin:0 auto 8px;max-width:536px}
+.ph span{flex:1;min-width:0;font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ph b{font-size:20px;font-variant-numeric:tabular-nums}
+.pg{display:grid;grid-template-columns:3fr 1.25fr;gap:8px;height:216px;max-width:536px;margin:0 auto}
+.ks,.ms{display:grid;gap:6px;grid-auto-rows:1fr}.ks{grid-template-columns:repeat(3,1fr)}
+.ks button{font-size:20px;padding:0;background:var(--key)}
+.ms button{font-size:13px;padding:0;background:var(--key);font-variant-numeric:tabular-nums;border-color:var(--ac);color:var(--ac);font-weight:600}
+</style></head><body>
+<h1>⚗ ポーション製作シミュレーター</h1>
+<div class="sub">数値をタップでテンキー、◀▶で±1(長押しで連続)。入力内容はこの端末に保存されます。</div>
+
+<div class="card"><b>レシピ</b>
+  <div class="row" style="margin-top:8px"><select id="rc"></select><button class="p" id="nr">＋ レシピ追加</button></div>
+  <div class="row" style="margin-top:8px"><button id="clr">価格を一斉クリア</button><button id="rs">全リセット</button><button id="rdel" hidden>このレシピを削除</button></div>
+  <div id="nrp" hidden style="margin-top:10px;border-top:1px dashed var(--bd);padding-top:10px">
+    <span class="lab">新しいレシピの名前(売値はあとで入力)</span><input type="text" id="nn" style="width:100%" placeholder="例: 上級精神のポーション">
+    <span class="lab">材料(素材名と個数)</span><div id="nrm"></div>
+    <div class="row"><button id="nra">＋ 材料を追加</button><button class="p" id="nrs">保存</button><button id="nrc">キャンセル</button></div>
+    <div id="nmsg" class="mut" style="margin-top:6px"></div>
+    <datalist id="itl"></datalist>
+  </div>
+</div>
+
+<div class="card"><b>全レシピ比較</b><span class="mut"> 1回あたりの期待差額(高い順・タップで選択)</span><div id="cmp"></div></div>
+
+<div class="card"><b>素材</b>
+  <div class="mut" style="margin-top:4px">タップで登録(同じ素材をもう一度押すと数量+1)。店売り品は固定価格で自動入力されます。</div>
+  <div class="chips" id="chips"></div>
+  <div id="mats"></div>
+  <div class="row" style="margin-top:8px"><button class="p" id="add">＋ 手動で素材を追加</button></div>
+</div>
+
+<div class="card"><b>調達設定</b>
+  <label class="c"><input type="checkbox" id="cv"><span>変換を考慮する(オード→アンヌス・カレンドラ、高純度のオード→新鮮なアンヌス・新鮮なカレンドラ、いずれも1対1。安いほうで計算)</span></label>
+  <div class="row"><div><span class="lab">オード価格</span><div id="fo"></div></div><div><span class="lab">高純度のオード価格</span><div id="fo2"></div></div></div>
+  <span class="lab" style="margin-top:10px">風の秘薬の調達(上級風の秘薬の素材)</span><select id="ws"><option value="auto">自動(安いほう)</option><option value="buy">マーケットで購入</option><option value="make">自作</option></select><div id="wnote" class="mut" style="margin-top:4px"></div>
+</div>
+
+<div class="card"><b>最終製作物</b>
+  <div class="row" id="pnrow" style="margin-top:8px"></div>
+  <span class="lab">マーケット売値</span><div id="fpp"></div>
+  <div id="gbox" hidden><span class="lab">光る場合のマーケット売値</span><div id="fgp"></div></div>
+  <div class="row"><div><span class="lab">成功率(%)</span><div id="frt"></div></div><div><span class="lab">税率(%)(売却・購入に共通)</span><div id="ffe"></div></div></div>
+  <div class="row" style="margin-top:4px"><div><span class="lab">コンボ設定</span><select id="md"><option value="x2">成功時×2</option><option value="glow">光る</option><option value="none">コンボ無視</option></select></div><div id="cbox"><span class="lab" id="cl">コンボ率(%)</span><div id="fcb"></div></div></div>
+</div>
+
+<div class="card"><b>製作回数</b><span class="lab">何回製作するか</span><div id="fn"></div></div>
+
+<div class="card"><b>結果</b>
+  <div class="res"><span>素材費の合計</span><b id="tot">0</b></div>
+  <div class="res"><span>売値(税引後)</span><b id="net">0</b></div>
+  <div class="res"><span>差額(1個・売値 − 素材費)</span><b class="big" id="diff">0</b></div>
+  <div class="res"><span>利益率</span><b id="rt">—</b></div>
+  <div class="res"><span>損益分岐の売値(これ以上で黒字)</span><b id="be">—</b></div>
+  <div class="res" id="cdrow"><span id="cdl">コンボ成功時の差額(2個)</span><b id="cd">0</b></div>
+  <div class="res"><span>期待個数(1回の製作あたり)</span><b id="ei">1</b></div>
+  <div class="res"><span>期待差額(1回の製作あたり)</span><b id="ex">0</b></div>
+  <div class="res"><span>・製作回数ぶんの総素材費</span><b id="tc">0</b></div>
+  <div class="res"><span>・期待完成個数</span><b id="ti">0</b></div>
+  <div class="res"><span>・期待売上(税引後)</span><b id="ts">0</b></div>
+  <div class="res"><span>・期待利益</span><b class="big" id="tp">0</b></div>
+  <div class="mut" style="margin-top:6px">期待値は成功率とコンボ設定を反映します。コンボ・光るは成功したときだけ発生し、失敗しても素材は消費する前提です。素材をマーケットで買う場合は、売却と同じ税率が購入価格に上乗せされます(店売り品・所持品は対象外)。</div>
+</div>
+
+<div class="card"><b>必要素材リスト</b><span class="mut"> 製作回数ぶん(失敗分を含む)</span><div id="shop"></div></div>
+
+<div class="card"><b>運のぶれの目安</b>
+  <div class="mut" style="margin:4px 0 8px">いまの製作回数を何度も繰り返したときの、利益の幅です。</div>
+  <button class="p" id="lk">計算する</button><div id="lkr" style="margin-top:8px"></div></div>
+
+<div id="pad" hidden>
+  <div class="ph"><span id="pl"></span><b id="pv">0</b><button class="p" id="px">閉じる</button></div>
+  <div class="pg"><div class="ks" id="ks"></div><div class="ms" id="ms"></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('ja-JP');
+const MAX=1e12;
+const ITEMS=['生命のポーション','生命の秘薬','ガラス瓶','高級ガラス瓶','アンヌス','新鮮なアンヌス','カレンドラ','新鮮なカレンドラ','オード','高純度のオード','風の秘薬','上級風の秘薬','精霊石の粉','治癒のポーション'];
+const SHOP={'生命のポーション':250,'生命の秘薬':1000,'ガラス瓶':400,'高級ガラス瓶':1200,'治癒のポーション':630};
+const RC={
+ '上級生命のポーション':['生命のポーション','アンヌス','高級ガラス瓶'],
+ '上級生命の秘薬':['生命の秘薬','新鮮なアンヌス','高級ガラス瓶'],
+ '風の秘薬':['アンヌス','カレンドラ','ガラス瓶'],
+ '上級風の秘薬':['風の秘薬','新鮮なアンヌス','新鮮なカレンドラ','高級ガラス瓶'],
+ '上級治癒のポーション':['治癒のポーション','新鮮なカレンドラ','高級ガラス瓶'],
+ '精神のポーション':['カレンドラ','精霊石の粉','高級ガラス瓶']};
+Object.keys(RC).forEach(k=>{RC[k]=RC[k].map(n=>[n,1])});
+const CV={'アンヌス':'ode','カレンドラ':'ode','新鮮なアンヌス':'ode2','新鮮なカレンドラ':'ode2'};
+const fill=r=>RC[r].map(([n,q])=>({n,q,p:0,k:1}));
+const init=()=>({v:3,rc:'上級生命のポーション',mats:fill('上級生命のポーション'),pn:'',pr:{},cr:{},ode:0,ode2:0,cv:true,ws:'auto',rate:100,fee:10,combo:25,md:'x2',n:10});
+let S=init();
+try{const s=JSON.parse(localStorage.getItem('potionsim')||'null');if(s&&s.v===3&&Array.isArray(s.mats)&&s.mats.length)S=Object.assign(init(),s)}catch(e){}
+Object.entries(S.cr||{}).forEach(([k,v])=>{if(!RC[k])RC[k]=v});if(S.rc!=='manual'&&!RC[S.rc]){S.rc='manual'}
+const save=()=>{try{localStorage.setItem('potionsim',JSON.stringify(S))}catch(e){}};
+let refs=[],pad=null,fresh=false;
+const clamp=(v,mx=MAX)=>Math.max(0,Math.min(mx,Math.floor(v)||0));
+const pget=m=>m.k?(SHOP[m.n]!==undefined?SHOP[m.n]:(S.pr[m.n]||0)):m.p;
+const pset=(m,v)=>{if(m.k)S.pr[m.n]=v;else m.p=v};
+const isShop=m=>m.k&&SHOP[m.n]!==undefined;
+function base(m){let b=pget(m);const f=1+S.fee/100,tx=!isShop(m)&&m.t!==false;
+ if(m.k&&S.cv&&CV[m.n]){const o=S[CV[m.n]];if(o>0){const c=tx?o:o*f;b=b>0?Math.min(b,c):c}}
+ return tx?b*f:b}
+function econ(key,total){const k=1-S.fee/100,net=(S.pr[key]||0)*k,gnet=(S.pr[key+'|光る']||0)*k,r=S.rate/100,g=S.combo/100;
+ let ei=r,rev=r*net;
+ if(S.md==='x2'){ei=r*(1+g);rev=net*ei}else if(S.md==='glow'){rev=r*((1-g)*net+g*gnet)}
+ return{net,gnet,ei,rev,ex:rev-total}}
+const rcCost=r=>RC[r].reduce((s,[n,q])=>s+q*eff({n,q:1,p:0,k:1}),0);
+function wind(){const mk=(S.pr['風の秘薬']||0)*(1+S.fee/100),e=econ('風の秘薬',0).ei,self=e>0?rcCost('風の秘薬')/e:0;
+ let use=S.ws;if(use==='auto')use=mk>0&&(self<=0||mk<self)?'buy':(self>0?'make':'buy');
+ return{mk,self,use}}
+function eff(m){if(m.k&&m.n==='風の秘薬'){const w=wind();return w.use==='make'?w.self:w.mk}return base(m)}
+const totalCost=()=>S.mats.reduce((s,m)=>s+m.q*eff(m),0);
+const sk=()=>S.rc==='manual'?'manual':S.rc;
+
+function hold(b,fn){let t,iv;const stop=()=>{clearTimeout(t);clearInterval(iv)};
+ b.addEventListener('pointerdown',e=>{e.preventDefault();fn();t=setTimeout(()=>{iv=setInterval(fn,70)},450)});
+ ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop));
+ b.addEventListener('contextmenu',e=>e.preventDefault())}
+
+function fld(lbl,get,set,mx){
+ const w=document.createElement('div');w.className='num';
+ const l=document.createElement('button'),r=document.createElement('button'),v=document.createElement('button');
+ l.textContent='◀';r.textContent='▶';v.className='val';
+ const st=d=>{set(clamp(get()+d,mx));upd()};
+ hold(l,()=>st(-1));hold(r,()=>st(1));
+ v.onclick=()=>{pad={lbl,get,set,mx,v};fresh=true;$('pad').hidden=false;document.body.classList.add('po');
+  $('pl').textContent=lbl();upd();v.scrollIntoView({block:'center',behavior:'smooth'})};
+ w.append(l,v,r);
+ refs.push(()=>{v.textContent=fmt(get());v.classList.toggle('on',!!pad&&pad.v===v)});
+ return w}
+
+function build(){
+ refs=[];const box=$('mats');box.innerHTML='';
+ S.mats.forEach((m,i)=>{
+  const d=document.createElement('div');d.className='mat';
+  const top=document.createElement('div');top.className='row';
+  const inp=document.createElement('input');inp.type='text';inp.placeholder='素材名 '+(i+1);inp.value=m.n;
+  if(m.k)inp.readOnly=true;else inp.oninput=()=>{m.n=inp.value;save()};
+  const x=document.createElement('button');x.className='x';x.textContent='✕';
+  x.onclick=()=>{S.mats.splice(i,1);closePad();build();upd()};
+  top.append(inp);
+  if(m.k&&SHOP[m.n]!==undefined){const t=document.createElement('span');t.className='tag';t.textContent='店売り';top.append(t)}
+  top.append(x);
+  const nm=()=>(m.n||'素材'+(i+1));
+  const mid=document.createElement('div');mid.className='row';
+  const a=document.createElement('div'),b=document.createElement('div'),s=document.createElement('span');
+  a.innerHTML='<span class="lab">数量</span>';b.innerHTML='<span class="lab">単価</span>';s.className='sum';
+  a.append(fld(()=>nm()+' の数量',()=>m.q,v=>{m.q=v}));
+  if(m.k&&SHOP[m.n]!==undefined)b.insertAdjacentHTML('beforeend','<b style="display:block;padding:8px 0">'+fmt(SHOP[m.n])+' <span class="mut">(固定)</span></b>');
+  else b.append(fld(()=>nm()+' の単価',()=>pget(m),v=>{pset(m,v)}));
+  refs.push(()=>{const e=eff(m);s.innerHTML='小計 '+fmt(m.q*e)+(Math.round(e)!==Math.round(pget(m))?'<br><span class="mut">実効単価 '+fmt(e)+'</span>':'')});
+  mid.append(a,b,s);d.append(top,mid);
+  if(!isShop(m)){const lb=document.createElement('label');lb.className='c';const cb=document.createElement('input');cb.type='checkbox';cb.checked=m.t!==false;cb.onchange=()=>{m.t=cb.checked;upd()};const sp=document.createElement('span');sp.textContent='マーケットで購入(購入税を上乗せ。所持・採取品はオフ)';lb.append(cb,sp);d.append(lb)}
+  box.append(d)});
+ const pr=$('pnrow');pr.innerHTML='';
+ if(S.rc==='manual'){const i=document.createElement('input');i.type='text';i.placeholder='製作物の名前';i.value=S.pn;i.oninput=()=>{S.pn=i.value;save()};pr.append(i)}
+ else{const t=document.createElement('b');t.textContent=S.rc;pr.append(t)}
+ $('fpp').replaceChildren(fld(()=>'マーケット売値',()=>S.pr[sk()]||0,v=>{S.pr[sk()]=v}));
+ $('fgp').replaceChildren(fld(()=>'光る場合のマーケット売値',()=>S.pr[sk()+'|光る']||0,v=>{S.pr[sk()+'|光る']=v}));
+ $('frt').replaceChildren(fld(()=>'成功率(%)',()=>S.rate,v=>{S.rate=v},100));
+ $('ffe').replaceChildren(fld(()=>'税率(%)',()=>S.fee,v=>{S.fee=v},100));
+ $('fcb').replaceChildren(fld(()=>S.md==='glow'?'光る率(%)':'コンボ率(%)',()=>S.combo,v=>{S.combo=v},100));
+ $('fn').replaceChildren(fld(()=>'製作回数',()=>S.n,v=>{S.n=v}));
+ $('fo').replaceChildren(fld(()=>'オード価格',()=>S.ode,v=>{S.ode=v}));
+ $('fo2').replaceChildren(fld(()=>'高純度のオード価格',()=>S.ode2,v=>{S.ode2=v}));
+ $('rdel').hidden=!(S.cr&&S.cr[S.rc]);
+}
+function closePad(){pad=null;$('pad').hidden=true;document.body.classList.remove('po')}
+const sg=n=>(Math.round(n)>0?'+':'')+fmt(n);
+const cls=(el,n,b='')=>{el.className=b+(b?' ':'')+(Math.round(n)>0?'ok':Math.round(n)<0?'ng':'')};
+
+function upd(){
+ refs.forEach(f=>f());
+ const total=totalCost();
+ const E=econ(sk(),total),net=E.net,gnet=E.gnet,diff=net-total;
+ const r=S.rate/100,g=S.combo/100;
+ $('tot').textContent=fmt(total);$('net').textContent=fmt(net);
+ $('diff').textContent=sg(diff);cls($('diff'),diff,'big');
+ $('rt').textContent=total>0?(diff/total*100).toFixed(1)+'%':'—';
+ $('gbox').hidden=S.md!=='glow';$('cbox').hidden=S.md==='none';$('cdrow').hidden=S.md==='none';
+ $('cl').textContent=S.md==='glow'?'光る率(%)':'コンボ率(%)(成功時・2個)';
+ $('cdl').textContent=S.md==='glow'?'光る場合の差額':'コンボ成功時の差額(2個)';
+ const cv=S.md==='glow'?gnet-total:net*2-total;$('cd').textContent=sg(cv);cls($('cd'),cv);
+ const ei=E.ei,rev=E.rev,ex=E.ex;
+ $('ei').textContent=ei.toFixed(3);$('ex').textContent=sg(ex);cls($('ex'),ex);
+ const tprof=S.n*rev-total*S.n;
+ $('tc').textContent=fmt(total*S.n);$('ti').textContent=(S.n*ei).toFixed(1);$('ts').textContent=fmt(S.n*rev);
+ $('tp').textContent=sg(tprof);cls($('tp'),tprof,'big');
+ const kk=1-S.fee/100;let be='—';
+ if(kk>0&&r>0&&ei>0){const P=S.md==='glow'?(g<1?((total/r)-g*gnet)/((1-g)*kk):0):total/(ei*kk);be=P>0?fmt(Math.ceil(P)):'0(光る売値だけで黒字)'}
+ $('be').textContent=be;
+ const w=wind();$('wnote').textContent=(w.mk>0||w.self>0)?'購入(税込) '+fmt(w.mk)+' / 自作原価 '+fmt(w.self)+' → '+(w.use==='make'?'自作':'購入')+'を採用':'風の秘薬の相場とアンヌス等の価格を入れると比較します';
+ renderCmp();renderShop();
+ if(pad){$('pv').textContent=fmt(pad.get());$('pl').textContent=pad.lbl()}
+ save()}
+
+/* テンキー */
+const key=f=>{if(!pad)return;pad.set(clamp(f(pad.get()),pad.mx));upd()};
+const dig=d=>key(v=>{if(fresh){fresh=false;return d}return v*10+d});
+[7,8,9,4,5,6,1,2,3,'C',0,'⌫'].forEach(k=>{
+ const b=document.createElement('button');b.textContent=k;
+ b.onclick=()=>{if(k==='C'){fresh=false;key(()=>0)}else if(k==='⌫'){fresh=false;key(v=>Math.floor(v/10))}else dig(k)};
+ $('ks').append(b)});
+[1,10,100,1000,10000,100000].forEach(n=>{
+ const b=document.createElement('button');b.textContent='+'+n.toLocaleString('ja-JP');
+ b.onclick=()=>{fresh=false;key(v=>v+n)};$('ms').append(b)});
+$('px').onclick=()=>{closePad();upd()};
+
+/* 操作 */
+rcOpts();
+ITEMS.forEach(n=>{const b=document.createElement('button');b.textContent='＋'+n+(SHOP[n]!==undefined?'('+SHOP[n]+')':'');
+ b.onclick=()=>{const m=S.mats.find(x=>x.k&&x.n===n);if(m)m.q=clamp(m.q+1);else S.mats.push({n,q:1,p:0,k:1});closePad();build();upd()};$('chips').append(b)});
+$('rc').onchange=()=>{S.rc=$('rc').value;if(S.rc!=='manual')S.mats=fill(S.rc);closePad();build();upd()};
+$('md').onchange=()=>{S.md=$('md').value;upd()};
+$('cv').onchange=()=>{S.cv=$('cv').checked;upd()};
+$('add').onclick=()=>{S.mats.push({n:'',q:1,p:0,k:0});closePad();build();upd()};
+$('clr').onclick=()=>{S.pr={};S.ode=0;S.ode2=0;S.mats.forEach(m=>{if(!m.k)m.p=0});upd()};
+$('rs').onclick=()=>{if(confirm('入力内容をすべてリセットしますか?(追加したレシピは残ります)')){const cr=S.cr;S=init();S.cr=cr;sync();closePad();build();upd()}};
+function sync(){$('rc').value=S.rc;$('md').value=S.md;$('cv').checked=S.cv;$('ws').value=S.ws}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function renderCmp(){
+ const rows=Object.keys(RC).map(n=>{const c=rcCost(n),E=econ(n,c);return{n,c,ex:E.ex,ok:(S.pr[n]||0)>0}});
+ rows.sort((a,b)=>(b.ok-a.ok)||(b.ex-a.ex));
+ $('cmp').innerHTML='<div class="res mut"><span>レシピ</span><span>素材費 / 期待差額</span></div>'+rows.map(r=>'<div class="res" data-r="'+esc(r.n)+'" style="cursor:pointer"><span>'+(r.n===S.rc?'▶ ':'')+esc(r.n)+'</span><span>'+fmt(r.c)+' / '+(r.ok?'<b class="'+(Math.round(r.ex)>0?'ok':Math.round(r.ex)<0?'ng':'')+'">'+sg(r.ex)+'</b>':'<span class="mut">売値未入力</span>')+'</span></div>').join('')}
+function renderShop(){
+ const N=S.n,acc={},w=wind(),we=econ('風の秘薬',0).ei;let ex=false;
+ const add=(n,q,m)=>{(acc[n]=acc[n]||{q:0,u:eff(m)}).q+=q};
+ S.mats.forEach(m=>{const need=m.q*N;
+  if(m.k&&m.n==='風の秘薬'&&w.use==='make'&&we>0){ex=true;const at=need/we;RC['風の秘薬'].forEach(([n,q])=>add(n,at*q,{n,q:1,p:0,k:1}))}
+  else add(m.n||'(名前なし)',need,m)});
+ const rows=Object.entries(acc),c=q=>Math.ceil(q-1e-9);
+ $('shop').innerHTML=rows.length?rows.map(([n,o])=>'<div class="res"><span>'+esc(n)+(SHOP[n]!==undefined?' <span class="tag">店売り</span>':'')+'</span><span>×'+fmt(c(o.q))+' <span class="mut">(約'+fmt(c(o.q)*o.u)+')</span></span></div>').join('')+(ex?'<div class="mut">風の秘薬は自作分(期待値)を含みます。</div>':''):'<span class="mut">素材がありません</span>'}
+$('cmp').onclick=e=>{const r=e.target.closest('[data-r]');if(r){S.rc=r.dataset.r;S.mats=fill(S.rc);$('rc').value=S.rc;closePad();build();upd()}};
+$('ws').onchange=()=>{S.ws=$('ws').value;upd()};
+$('lk').onclick=()=>{
+ const total=totalCost(),E=econ(sk(),total),N=Math.max(1,S.n),r=S.rate/100,g=S.combo/100,net=E.net,gn=E.gnet,cost=total*N;
+ const V=S.md==='x2'?[[1-r,0],[r*g,2*net],[r*(1-g),net]]:S.md==='glow'?[[1-r,0],[r*g,gn],[r*(1-g),net]]:[[1-r,0],[r,net]];
+ let p10,p50,p90,loss;
+ if(N<=2000){const T=2000,res=[];let neg=0;
+  for(let t=0;t<T;t++){let s=0;for(let i=0;i<N;i++){const u=Math.random();let a=0;for(const [p,v] of V){a+=p;if(u<a){s+=v;break}}}const pf=s-cost;res.push(pf);if(pf<0)neg++}
+  res.sort((a,b)=>a-b);p10=res[Math.floor(T*.1)];p50=res[Math.floor(T*.5)];p90=res[Math.floor(T*.9)];loss=neg/T}
+ else{const mu=V.reduce((s,[p,v])=>s+p*v,0),va=V.reduce((s,[p,v])=>s+p*v*v,0)-mu*mu,m=N*mu-cost,sd=Math.sqrt(N*va);
+  p10=m-1.2816*sd;p50=m;p90=m+1.2816*sd;loss=sd>0?1/(1+Math.exp(-1.702*(cost-N*mu)/sd)):(m<0?1:0)}
+ const row=(l,v)=>'<div class="res"><span>'+l+'</span><b class="'+(Math.round(v)>0?'ok':Math.round(v)<0?'ng':'')+'">'+sg(v)+'</b></div>';
+ $('lkr').innerHTML=row('運が悪い場合(下位10%)',p10)+row('中央値',p50)+row('運が良い場合(上位10%)',p90)+'<div class="res"><span>赤字になる確率</span><b>'+(loss*100).toFixed(1)+'%</b></div>'+(N>2000?'<div class="mut">回数が多いため近似計算です。</div>':'')};
+function rcOpts(){const s=$('rc');s.innerHTML='';
+ [['manual','手動(自由入力)']].concat(Object.keys(RC).map(n=>[n,(S.cr&&S.cr[n]?'★ ':'')+n])).forEach(([v,t])=>{const o=document.createElement('option');o.value=v;o.textContent=t;s.append(o)});
+ s.value=(S.rc==='manual'||RC[S.rc])?S.rc:'manual'}
+let nrRows=[];
+function nrRender(){const box=$('nrm');box.innerHTML='';
+ nrRows.forEach((r,i)=>{const d=document.createElement('div');d.className='row';d.style.marginBottom='6px';
+  const n=document.createElement('input');n.type='text';n.setAttribute('list','itl');n.placeholder='素材名';n.value=r.n;n.oninput=()=>{r.n=n.value};
+  const q=document.createElement('input');q.type='number';q.min=1;q.value=r.q;q.oninput=()=>{r.q=Math.max(1,Math.floor(+q.value)||1)};
+  const x=document.createElement('button');x.className='x';x.textContent='✕';x.onclick=()=>{nrRows.splice(i,1);if(!nrRows.length)nrRows.push({n:'',q:1});nrRender()};
+  d.append(n,q,x);box.append(d)})}
+ITEMS.forEach(n=>{const o=document.createElement('option');o.value=n;$('itl').append(o)});
+$('nr').onclick=()=>{nrRows=[{n:'',q:1},{n:'',q:1},{n:'',q:1}];$('nn').value='';$('nmsg').textContent='';nrRender();$('nrp').hidden=false};
+$('nrc').onclick=()=>{$('nrp').hidden=true};
+$('nra').onclick=()=>{nrRows.push({n:'',q:1});nrRender()};
+$('nrs').onclick=()=>{
+ const name=$('nn').value.trim(),items=nrRows.map(r=>[r.n.trim(),r.q]).filter(([n])=>n),msg=t=>{$('nmsg').textContent=t};
+ if(!name)return msg('レシピ名を入力してください');
+ if(RC[name]&&!(S.cr&&S.cr[name]))return msg('同じ名前の標準レシピがあります');
+ if(!items.length)return msg('材料を1つ以上入力してください');
+ const m={};items.forEach(([n,q])=>{m[n]=(m[n]||0)+q});
+ S.cr=S.cr||{};S.cr[name]=Object.entries(m);RC[name]=S.cr[name];
+ S.rc=name;S.mats=fill(name);$('nrp').hidden=true;rcOpts();closePad();build();upd()};
+$('rdel').onclick=()=>{if(S.cr&&S.cr[S.rc]&&confirm('「'+S.rc+'」を削除しますか?')){
+ delete S.cr[S.rc];delete RC[S.rc];delete S.pr[S.rc];delete S.pr[S.rc+'|光る'];
+ S.rc=Object.keys(RC)[0];S.mats=fill(S.rc);rcOpts();closePad();build();upd()}};
+sync();build();upd();
+</script></body></html>
